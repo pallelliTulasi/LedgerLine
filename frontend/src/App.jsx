@@ -9,12 +9,15 @@ function App() {
   const [balance, setBalance] = useState(null);
   const [history, setHistory] = useState([]);
 
+  // Live Backend URL (Render)
+  const API_BASE_URL = 'https://ledgerline-backend-i99t.onrender.com';
+
   // 1. Transfer Money
   const handleTransfer = async (e) => {
     e.preventDefault();
     setMessage('Processing...');
     try {
-      const res = await axios.post('http://localhost:8081/api/transactions/transfer', {
+      const res = await axios.post(`${API_BASE_URL}/api/transactions/transfer`, {
         fromAccount,
         toAccount,
         amount: parseFloat(amount)
@@ -31,7 +34,7 @@ function App() {
   // 2. Check Balance
   const checkBalance = async () => {
     try {
-      const res = await axios.get(`http://localhost:8081/api/accounts/${fromAccount}/balance`);
+      const res = await axios.get(`${API_BASE_URL}/api/accounts/${fromAccount}/balance`);
       setBalance(res.data.balance);
     } catch (err) {
       console.error(err);
@@ -41,7 +44,7 @@ function App() {
   // 3. Fetch Transaction History
   const fetchHistory = async () => {
     try {
-      const res = await axios.get(`http://localhost:8081/api/transactions/${fromAccount}/history`);
+      const res = await axios.get(`${API_BASE_URL}/api/transactions/${fromAccount}/history`);
       setHistory(res.data);
     } catch (err) {
       console.error(err);
