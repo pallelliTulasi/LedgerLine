@@ -1,7 +1,6 @@
 # 🚀 LedgerLine
 
-<!-- Kinda unna line ni delete chesi, akkada nee frontend screenshot ni drag & drop leda paste cheyyi -->
-![LedgerLine Dashboard UI]Screenshot 2026-11-06 144912.png
+![LedgerLine Dashboard UI](Screenshot%202026-11-06%20144912.png)
 
 LedgerLine is a modern, full-stack ledger and transaction management application. It provides a seamless interface for managing accounts and tracking daily ledger entries with a robust backend architecture.
 
