@@ -9,6 +9,8 @@ It provides atomic fund transfers, pessimistic locking with overdraft protection
 ### 🌐 Live Demo & Deployment
 - **Frontend Live (Render):** [https://ledgerline-app.onrender.com](https://ledgerline-app.onrender.com)
 - **Backend API (Render):** [https://ledgerline-backend-i99t.onrender.com](https://ledgerline-backend-i99t.onrender.com)
+- **Swagger Docs (Production):** [https://ledgerline-backend-i99t.onrender.com/swagger-ui.html](https://ledgerline-backend-i99t.onrender.com/swagger-ui.html)
+- **Actuator Health (Production):** [https://ledgerline-backend-i99t.onrender.com/actuator/health](https://ledgerline-backend-i99t.onrender.com/actuator/health)
 
 ---
 
@@ -25,47 +27,56 @@ It provides atomic fund transfers, pessimistic locking with overdraft protection
 
 ### Frontend
 * **Framework:** React.js (Vite)
+* **Design System:** BalanceVault Dark Forest Green (`#0f2d20`) & Off-White (`#f8f9f6`)
+* **Layout:** Sidebar Navigation (Overview, Accounts, Statements, Account Request) + Split-Screen Auth
 * **Styling:** Tailwind CSS
-* **Networking:** Axios with JWT Interceptors & 429 Rate-Limit Handling
+* **Networking:** Axios with JWT Bearer Interceptors & 429 Rate-Limit Handling
 
 ---
 
 ## 📁 Project Structure
 
 ```
-├── frontend/             # React + Vite frontend application
-│   ├── src/
-│   │   ├── App.jsx       # BalanceVault modern ledger dashboard
-│   │   └── main.jsx
-│   └── index.html        # BalanceVault HTML entrypoint
+├── Dockerfile                # Multi-stage production Docker build (OpenJDK 17)
+├── docker-compose.yml        # PostgreSQL 15, Redis 7, and Backend orchestration
+├── render.yaml               # Infrastructure-as-code Blueprint for Render cloud
 │
-└── ledgerline/           # Spring Boot backend application
+├── frontend/                 # React + Vite frontend application
+│   ├── src/
+│   │   ├── App.jsx           # BalanceVault modern ledger dashboard & split-screen auth
+│   │   ├── components/Navbar.jsx
+│   │   └── main.jsx
+│   └── index.html            # BalanceVault HTML entrypoint
+│
+└── ledgerline/               # Spring Boot backend application
+    ├── Dockerfile            # Sub-module Dockerfile
+    ├── pom.xml               # Dependencies (Actuator, OpenAPI, Redis, Bucket4j)
     ├── src/main/java/com/snovasys/ledgerline/
     │   ├── Config/
-    │   │   ├── DatabaseSeeder.java      # First-admin bootstrap & account seeding
-    │   │   ├── OpenApiConfig.java       # Swagger OpenAPI 3 configuration
-    │   │   ├── RateLimitInterceptor.java# Bucket4j rate limiting (HTTP 429)
-    │   │   ├── SecurityConfig.java      # Spring Security filter chain & RBAC
-    │   │   └── WebConfig.java           # WebMvcConfigurer (CORS + Interceptors)
+    │   │   ├── DatabaseSeeder.java        # First-admin bootstrap & demo accounts
+    │   │   ├── OpenApiConfig.java         # Swagger OpenAPI 3 configuration
+    │   │   ├── RateLimitInterceptor.java  # Bucket4j rate limiting (HTTP 429)
+    │   │   ├── SecurityConfig.java        # Spring Security filter chain & CORS
+    │   │   └── WebConfig.java             # WebMvcConfigurer (Interceptors)
     │   ├── controller/
-    │   │   ├── AccountController.java   # Balance inquiry APIs
-    │   │   ├── AuthController.java      # Register & JWT login endpoints
+    │   │   ├── AccountController.java     # Balance inquiry APIs
+    │   │   ├── AuthController.java        # Register & JWT login endpoints
     │   │   └── TransactionController.java # Idempotent transfer & history APIs
     │   ├── entity/
-    │   │   ├── Account.java             # Account entity with balance & version
-    │   │   ├── LedgerEntry.java         # Immutable ledger audit records
-    │   │   ├── Role.java                # RBAC enum (ROLE_USER, ROLE_ADMIN)
-    │   │   └── User.java                # UserDetails entity
+    │   │   ├── Account.java               # Account entity with balance & version
+    │   │   ├── LedgerEntry.java           # Immutable ledger audit records
+    │   │   ├── Role.java                  # RBAC enum (ROLE_USER, ROLE_ADMIN)
+    │   │   └── User.java                  # UserDetails entity
     │   ├── repository/
-    │   │   ├── AccountRepository.java   # Pessimistic locking queries
+    │   │   ├── AccountRepository.java     # Pessimistic locking queries
     │   │   ├── LedgerEntryRepository.java
     │   │   └── UserRepository.java
     │   ├── security/
     │   │   ├── JwtAuthenticationFilter.java # OncePerRequestFilter for Bearer tokens
-    │   │   └── JwtService.java          # JJWT token generation and validation
+    │   │   └── JwtService.java            # JJWT token generation and validation
     │   └── service/
-    │       ├── RateLimitingService.java # Distributed Redis/Bucket4j rate limiter
-    │       └── TransactionService.java  # Atomic idempotent transfers & locking
+    │       ├── RateLimitingService.java   # Distributed Redis/Bucket4j rate limiter
+    │       └── TransactionService.java    # Atomic idempotent transfers & locking
     └── src/test/java/
         └── com/snovasys/ledgerline/
             └── TransactionServiceTest.java # 50-thread concurrency & idempotency tests
@@ -73,14 +84,17 @@ It provides atomic fund transfers, pessimistic locking with overdraft protection
 
 ---
 
-## ✨ Key Features
+## ✨ Key Features & Seeded Credentials
 
-### 1. Role-Based Access Control (RBAC) & First-Admin Bootstrap
-* **Entities:** User model with `ROLE_USER` and `ROLE_ADMIN`. New user registrations automatically default to `ROLE_USER`.
-* **DatabaseSeeder:** Implements `CommandLineRunner`. Automatically checks if an admin exists upon startup; if not, bootstraps the initial superadmin:
-  * **Email:** `admin@balancevault.com`
-  * **Password:** `admin123`
-* **JWT Tokens:** Signed with HMAC-SHA256, carrying user subject and role claims.
+### 1. Default First-Admin & Pre-Seeded Accounts
+`DatabaseSeeder` implements `CommandLineRunner` to automatically bootstrap on first boot:
+| Type | Identifier / Email | Password | Role / Starting Balance |
+| :--- | :--- | :--- | :--- |
+| **Admin User** | `admin@balancevault.com` | `admin123` | `ROLE_ADMIN` |
+| **Primary Account** | `#1001` (Alice) | N/A | `₹5,000.00` |
+| **Secondary Account** | `#1002` (Bob) | N/A | `₹1,000.00` |
+
+*New signups through the UI or `/api/auth/register` automatically default to `ROLE_USER`.*
 
 ### 2. Distributed Rate Limiting (Redis + Bucket4j)
 * Configured for **20 requests per minute** per client IP or authenticated User ID.
@@ -88,11 +102,7 @@ It provides atomic fund transfers, pessimistic locking with overdraft protection
 * Automatically returns **HTTP `429 Too Many Requests`** with JSON details when the threshold is exceeded.
 * Seamless graceful fallback to in-memory Bucket4j if Redis is temporarily unreachable.
 
-### 3. Production Health Monitoring & OpenAPI Docs
-* **Actuator:** Exposes `/actuator/health` and `/actuator/info` with database and Redis health indicators.
-* **Swagger UI:** Interactive OpenAPI 3 interface with Bearer token authentication at `/swagger-ui.html`.
-
-### 4. Concurrency Protection & Strict Idempotency
+### 3. Concurrency Protection & Strict Idempotency
 * **Pessimistic Locking:** `findByAccountNumberWithLock` acquires row-level locks in deterministic account-number order to eliminate deadlocks and prevent overdrafts.
 * **Idempotency:** Accepts an optional client-supplied `transactionId`. If a duplicate request is re-transmitted (e.g. network retry), the system detects the existing record and **never deducts the balance twice**.
 
@@ -124,9 +134,9 @@ cd ledgerline
 cd ledgerline
 ./mvnw spring-boot:run
 ```
-* **Base URL:** `http://localhost:8081`
-* **Swagger UI:** `http://localhost:8081/swagger-ui.html`
-* **Actuator Health:** `http://localhost:8081/actuator/health`
+* **Base URL:** `http://localhost:8085`
+* **Swagger UI:** `http://localhost:8085/swagger-ui.html`
+* **Actuator Health:** `http://localhost:8085/actuator/health`
 
 ### 2. Run Frontend (React + Vite)
 ```bash
@@ -135,3 +145,12 @@ npm install
 npm run dev
 ```
 * **Frontend UI:** `http://localhost:5173`
+
+---
+
+## 🐳 Docker & Docker Compose
+
+To run the full stack (PostgreSQL, Redis, and Spring Boot Backend) with a single command:
+```bash
+docker compose up --build -d
+```
