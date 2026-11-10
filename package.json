@@ -1,4 +1,5 @@
 {
+  "name": "balancevault",
   "dependencies": {
     "autoprefixer": "^10.6.2",
     "axios": "^1.21.0",
