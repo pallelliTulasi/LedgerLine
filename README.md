@@ -154,3 +154,27 @@ To run the full stack (PostgreSQL, Redis, and Spring Boot Backend) with a single
 ```bash
 docker compose up --build -d
 ```
+
+---
+
+## ☁️ Cloud Deployment (Render.com)
+
+The project includes pre-configured **`render.yaml`** blueprints and Dockerfiles for zero-friction deployment to Render:
+
+### Deploy via Render Blueprint (Recommended)
+1. Go to [Render Dashboard](https://dashboard.render.com/) -> **New +** -> **Blueprint**.
+2. Connect `https://github.com/pallelliTulasi/LedgerLine.git`.
+3. Render reads `render.yaml` and deploys:
+   - **PostgreSQL Database** (`balancevault-db`)
+   - **Spring Boot Backend** (`balancevault-backend`)
+   - **React Frontend** (`balancevault-frontend`)
+
+### Deploy Manually on Render (Web Service)
+* **Environment:** `Docker` (or `Java 17`)
+* **Root Directory:** `ledgerline` (or leave blank if using root Dockerfile)
+* **DockerfilePath:** `./Dockerfile` (or `./ledgerline/Dockerfile`)
+* **Health Check Path:** `/health`
+* **Environment Variables:**
+  - `PORT`: `8085` (Render assigns its own port dynamically)
+  - `DATABASE_URL`: Your Render PostgreSQL Internal Connection String (e.g. `postgresql://...`)
+  - `MANAGEMENT_HEALTH_REDIS_ENABLED`: `false` (when running without managed Redis)

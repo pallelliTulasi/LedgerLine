@@ -97,8 +97,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Explicitly permit all preflight CORS OPTIONS requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Explicitly permit public endpoints
+                        // Explicitly permit public endpoints and cloud health checks
                         .requestMatchers(
+                                "/",
+                                "/health",
+                                "/api/health",
                                 "/api/auth/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
