@@ -50,7 +50,7 @@ public class RateLimitingService {
             RedisURI.Builder builder = RedisURI.builder()
                     .withHost(redisHost)
                     .withPort(redisPort)
-                    .withTimeout(Duration.ofMillis(2000));
+                    .withTimeout(Duration.ofMillis(500));
             if (redisPassword != null && !redisPassword.isBlank()) {
                 builder.withPassword(redisPassword.toCharArray());
             }

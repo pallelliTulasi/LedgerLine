@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/accounts")
-@CrossOrigin(origins = "*")
 @Tag(name = "Accounts", description = "Account inquiry and balance management endpoints")
 @SecurityRequirement(name = "BearerAuth")
 public class AccountController {

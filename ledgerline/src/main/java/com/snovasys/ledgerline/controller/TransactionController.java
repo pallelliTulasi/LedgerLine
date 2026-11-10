@@ -17,7 +17,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/transactions")
-@CrossOrigin(origins = "*")
 @Tag(name = "Transactions", description = "Endpoints for idempotent fund transfers and ledger audit history")
 @SecurityRequirement(name = "BearerAuth")
 public class TransactionController {

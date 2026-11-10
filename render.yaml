@@ -1,0 +1,45 @@
+services:
+  # Backend Web Service (Spring Boot 3 REST API)
+  - type: web
+    name: balancevault-backend
+    runtime: docker
+    dockerfilePath: ./ledgerline/Dockerfile
+    dockerContext: ./ledgerline
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 8085
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: balancevault-db
+          property: connectionString
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: balancevault-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: balancevault-db
+          property: password
+
+  # Frontend Static Site (React + Vite + Tailwind)
+  - type: web
+    name: balancevault-frontend
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    plan: free
+    region: oregon
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: balancevault-backend
+          property: host
+
+databases:
+  # Managed PostgreSQL Database
+  - name: balancevault-db
+    plan: free
+    region: oregon

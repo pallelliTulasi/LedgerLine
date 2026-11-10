@@ -8,7 +8,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -20,6 +19,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -56,26 +60,56 @@ public class SecurityConfig {
     }
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        // Explicitly allow origin http://localhost:5173 (plus 127.0.0.1 and production)
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://localhost:3000",
+                "https://ledgerline-app.onrender.com"
+        ));
+        configuration.setAllowedOriginPatterns(List.of(
+                "https://*.onrender.com",
+                "https://*.vercel.app",
+                "https://*.netlify.app"
+        ));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Authorization", "X-Rate-Limit-Remaining", "X-Rate-Limit-Retry-After-Seconds"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthFilter) throws Exception {
         http
-                .cors(Customizer.withDefaults())
+                // Explicit CORS configuration
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                // Disable CSRF for stateless REST / JWT API
                 .csrf(csrf -> csrf.disable())
+                // Keep session management as STATELESS
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Public Endpoints
+                        // Explicitly permit all preflight CORS OPTIONS requests
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Explicitly permit public endpoints
                         .requestMatchers(
                                 "/api/auth/**",
-                                "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
+                                "/v3/api-docs/**",
                                 "/actuator/**"
                         ).permitAll()
-                        // Admin-only endpoints
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        // Transactions & Accounts endpoints require authentication
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Protected admin routes
+                        .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
+                        // Transactions & Accounts endpoints
                         .requestMatchers("/api/transactions/**", "/api/accounts/**").authenticated()
-                        // Any other request requires authentication
+                        // All other requests must be authenticated
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
