@@ -19,9 +19,9 @@ function App() {
   const [loginPassword, setLoginPassword] = useState('admin123');
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Live Backend URL (or localhost in dev)
+  // Live Backend URL (or localhost on 8081 in dev)
   const API_BASE_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:8080' 
+    ? 'http://localhost:8081' 
     : 'https://ledgerline-backend-i99t.onrender.com';
 
   const getAuthHeaders = () => {

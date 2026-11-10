@@ -124,9 +124,9 @@ cd ledgerline
 cd ledgerline
 ./mvnw spring-boot:run
 ```
-* **Base URL:** `http://localhost:8080`
-* **Swagger UI:** `http://localhost:8080/swagger-ui.html`
-* **Actuator Health:** `http://localhost:8080/actuator/health`
+* **Base URL:** `http://localhost:8081`
+* **Swagger UI:** `http://localhost:8081/swagger-ui.html`
+* **Actuator Health:** `http://localhost:8081/actuator/health`
 
 ### 2. Run Frontend (React + Vite)
 ```bash
