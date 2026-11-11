@@ -1,6 +1,6 @@
 # 🚀 BalanceVault
 
-![BalanceVault Dashboard UI](Screenshot 2026-11-11 173320.png)
+![BalanceVault Dashboard UI](Screenshot%202026-11-11%20173320.png)
 
 **BalanceVault** is an enterprise-grade, high-concurrency distributed financial ledger and transaction management system built with **Spring Boot 3**, **React**, **PostgreSQL**, and **Redis**.
 
