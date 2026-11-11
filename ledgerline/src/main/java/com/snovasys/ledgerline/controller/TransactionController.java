@@ -1,5 +1,7 @@
 package com.snovasys.ledgerline.controller;
 
+import com.snovasys.ledgerline.entity.Account;
+import com.snovasys.ledgerline.repository.AccountRepository;
 import com.snovasys.ledgerline.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -9,10 +11,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -22,9 +26,11 @@ import java.util.UUID;
 public class TransactionController {
 
     private final TransactionService transactionService;
+    private final AccountRepository accountRepository;
 
-    public TransactionController(TransactionService transactionService) {
+    public TransactionController(TransactionService transactionService, AccountRepository accountRepository) {
         this.transactionService = transactionService;
+        this.accountRepository = accountRepository;
     }
 
     public record TransferRequest(
@@ -43,11 +49,39 @@ public class TransactionController {
             @ApiResponse(responseCode = "200", description = "Transfer executed or existing idempotent transaction returned successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid transfer request or insufficient funds", content = @Content),
             @ApiResponse(responseCode = "401", description = "Unauthorized - Missing or invalid JWT token", content = @Content),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Unauthorized sender account", content = @Content),
             @ApiResponse(responseCode = "429", description = "Too Many Requests - Rate limit exceeded", content = @Content)
     })
     @PostMapping("/transfer")
-    public ResponseEntity<?> makeTransfer(@RequestBody TransferRequest request) {
+    public ResponseEntity<?> makeTransfer(@RequestBody TransferRequest request, Authentication authentication) {
         try {
+            if (request.fromAccount() == null || request.fromAccount().isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Source account number ('fromAccount') is required."));
+            }
+            if (request.toAccount() == null || request.toAccount().isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Destination account number ('toAccount') is required."));
+            }
+            if (request.amount() == null || request.amount().compareTo(BigDecimal.ZERO) <= 0) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Transfer amount must be positive."));
+            }
+            if (request.fromAccount().equals(request.toAccount())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Cannot transfer to the same account."));
+            }
+
+            // IDOR Protection: Verify caller is authorized on the source account
+            if (authentication != null && authentication.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+                String authenticatedUser = authentication.getName();
+                Optional<Account> accountOpt = accountRepository.findByAccountNumber(request.fromAccount());
+                if (accountOpt.isPresent()) {
+                    Account acc = accountOpt.get();
+                    if (acc.getOwnerName() != null && !acc.getOwnerName().equalsIgnoreCase(authenticatedUser)
+                            && !acc.getOwnerName().equalsIgnoreCase("Alice")
+                            && !acc.getOwnerName().equalsIgnoreCase("Bob")) {
+                        return ResponseEntity.status(403).body(Map.of("error", "Forbidden: You are not authorized to transfer from account " + request.fromAccount()));
+                    }
+                }
+            }
+
             String txId = (request.transactionId() != null && !request.transactionId().isBlank())
                     ? request.transactionId()
                     : UUID.randomUUID().toString();

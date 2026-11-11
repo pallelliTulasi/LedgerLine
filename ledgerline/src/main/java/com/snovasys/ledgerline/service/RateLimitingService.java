@@ -40,11 +40,18 @@ public class RateLimitingService {
     public RateLimitingService(
             @Value("${balancevault.ratelimit.capacity:20}") long capacity,
             @Value("${balancevault.ratelimit.duration-minutes:1}") long durationMinutes,
+            @Value("${spring.data.redis.enabled:false}") boolean redisEnabled,
             @Value("${spring.data.redis.host:127.0.0.1}") String redisHost,
             @Value("${spring.data.redis.port:6379}") int redisPort,
             @Value("${spring.data.redis.password:}") String redisPassword) {
         this.capacity = capacity;
         this.durationMinutes = durationMinutes;
+
+        if (!redisEnabled) {
+            this.redisAvailable = false;
+            log.info("ℹ️ Redis rate limiting disabled by configuration. Using in-memory Bucket4j token bucket.");
+            return;
+        }
 
         try {
             RedisURI.Builder builder = RedisURI.builder()
@@ -63,6 +70,12 @@ public class RateLimitingService {
             log.info("✅ Redis connected for distributed Bucket4j rate limiting at {}:{}", redisHost, redisPort);
         } catch (Exception e) {
             this.redisAvailable = false;
+            if (this.redisClient != null) {
+                try {
+                    this.redisClient.shutdown();
+                } catch (Exception ignored) {}
+                this.redisClient = null;
+            }
             log.warn("⚠️ Redis unavailable at {}:{} ({}) - Falling back to in-memory Bucket4j rate limiting", redisHost, redisPort, e.getMessage());
         }
     }

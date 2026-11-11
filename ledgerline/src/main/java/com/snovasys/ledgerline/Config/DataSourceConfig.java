@@ -36,6 +36,9 @@ public class DataSourceConfig {
     @Value("${spring.datasource.password:#{null}}")
     private String springDatasourcePassword;
 
+    @Value("${spring.datasource.hikari.maximum-pool-size:20}")
+    private int maxPoolSize;
+
     @Bean
     @Primary
     public DataSource dataSource() {
@@ -105,14 +108,15 @@ public class DataSourceConfig {
             }
         }
 
-        // Cloud-optimized Hikari connection pool settings
-        config.setMaximumPoolSize(5);
-        config.setMinimumIdle(1);
+        // Hikari connection pool settings (supports test concurrency & cloud sizing)
+        config.setMaximumPoolSize(maxPoolSize > 0 ? maxPoolSize : 20);
+        config.setMinimumIdle(Math.min(2, maxPoolSize > 0 ? maxPoolSize : 20));
         config.setIdleTimeout(300000); // 5 minutes
-        config.setConnectionTimeout(20000); // 20 seconds
+        config.setConnectionTimeout(30000); // 30 seconds
         config.setMaxLifetime(600000); // 10 minutes
         config.setPoolName("BalanceVaultHikariPool");
 
         return new HikariDataSource(config);
     }
 }
+
